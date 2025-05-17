@@ -1,1 +1,682 @@
-# MI-progreso-personal
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Progreso Personal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e; /* Color de fondo oscuro principal */
+            color: #e0e0e0; /* Color de texto principal */
+        }
+        .system-panel {
+            background-color: #24243e; /* Color de fondo de paneles */
+            border: 1px solid #4a4a6a; /* Borde de paneles */
+            border-radius: 0.5rem; /* Bordes redondeados */
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .system-panel h2, .system-panel h3 {
+            color: #87CEEB; /* Color azul cielo para títulos */
+            border-bottom: 1px solid #4a4a6a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .stat-bar {
+            background-color: #3a3a5a;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            height: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .stat-bar-fill {
+            background-color: #87CEEB; /* Azul para XP */
+            height: 100%;
+            text-align: center;
+            line-height: 1.5rem;
+            color: #1a1a2e;
+            font-weight: bold;
+            transition: width 0.3s ease-in-out;
+        }
+        .hp-bar-fill { background-color: #90EE90; /* Verde claro para Energía */ }
+        .mp-bar-fill { background-color: #ADD8E6; /* Azul claro para Enfoque */ }
+
+        .btn {
+            background-color: #4a4a6a;
+            color: #e0e0e0;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background-color: #5a5a7a;
+        }
+        .btn-primary {
+            background-color: #87CEEB;
+            color: #1a1a2e;
+        }
+        .btn-primary:hover {
+            background-color: #67b0d0;
+        }
+        .btn-danger {
+            background-color: #FF6B6B;
+            color: #1a1a2e;
+        }
+        .btn-danger:hover {
+            background-color: #FF4B4B;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .quest-item {
+            background-color: #2c2c4a;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #87CEEB;
+        }
+        .quest-item.completed {
+            border-left-color: #90EE90; /* Verde para misiones completadas */
+            opacity: 0.7;
+        }
+        .system-log-message {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .system-log-message.info { background-color: #3a3a5a; border-left: 3px solid #87CEEB; }
+        .system-log-message.success { background-color: #2a4a3a; border-left: 3px solid #90EE90; }
+        .system-log-message.warning { background-color: #4a4a2a; border-left: 3px solid #FFD700; }
+        .system-log-message.error { background-color: #4a2a2a; border-left: 3px solid #FF6B6B; }
+
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .stat-allocation button {
+            margin-left: 0.5rem;
+        }
+        .challenge-mode { /* Anteriormente penalty-zone */
+            border: 2px dashed #FFD700; /* Amarillo para desafío */
+            padding: 1rem;
+            background-color: rgba(255, 215, 0, 0.1);
+        }
+        .editable-name-input {
+            background-color: #3a3a5a;
+            border: 1px solid #4a4a6a;
+            color: #e0e0e0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="container mx-auto max-w-5xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-sky-400">SISTEMA DE PROGRESO PERSONAL</h1>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-1 space-y-6">
+                <div id="player-info" class="system-panel">
+                    <h2 class="text-2xl font-semibold">Tu Progreso Personal</h2>
+                    <p><strong>Nombre:</strong> <span id="playerNameDisplay"></span> <button id="editNameBtn" class="btn btn-sm ml-2"><i class="fas fa-edit"></i></button></p>
+                    <div id="nameInputContainer" class="hidden mt-2">
+                        <input type="text" id="playerNameInput" class="editable-name-input">
+                        <button id="saveNameBtn" class="btn btn-sm btn-primary ml-2">Guardar</button>
+                    </div>
+                    <p><strong>Nivel de Progreso:</strong> <span id="playerLevel"></span></p>
+                    <p><strong>Etapa Actual:</strong> <span id="playerClass"></span></p> <p><strong>Reconocimiento:</strong> <span id="playerTitle"></span></p> <div class="mt-4">
+                        <p><strong>Energía:</strong> <span id="playerCurrentHP"></span> / <span id="playerMaxHP"></span></p>
+                        <div class="stat-bar"><div id="hpBarFill" class="stat-bar-fill hp-bar-fill"></div></div>
+                        <p><strong>Enfoque:</strong> <span id="playerCurrentMP"></span> / <span id="playerMaxMP"></span></p>
+                        <div class="stat-bar"><div id="mpBarFill" class="stat-bar-fill mp-bar-fill"></div></div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <p><strong>Experiencia de Vida:</strong> <span id="playerXP"></span> / <span id="playerXPToNextLevel"></span></p>
+                        <div class="stat-bar"><div id="xpBarFill" class="stat-bar-fill"></div></div>
+                    </div>
+                </div>
+
+                <div id="player-stats" class="system-panel">
+                    <h2 class="text-2xl font-semibold">Atributos Personales</h2>
+                    <p><strong>Puntos de Mejora Disponibles:</strong> <span id="statPoints">0</span></p>
+                    <div id="stats-list" class="space-y-2 mt-2">
+                        </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-2 space-y-6">
+                <div id="daily-quests" class="system-panel">
+                    <h2 class="text-2xl font-semibold">Hábitos Diarios / Objetivos Corto Plazo</h2>
+                    <div id="daily-quests-list" class="space-y-3">
+                        </div>
+                    <button id="endDayButton" class="btn btn-primary mt-4 w-full">Concluir Día y Evaluar Progreso</button>
+                </div>
+                
+                <div id="challenge-mode-panel" class="system-panel hidden"> <h2 class="text-2xl font-semibold text-yellow-400"><i class="fas fa-bolt"></i> Modo Desafío / Recuperación</h2>
+                     <div id="challenge-quest-details">
+                         </div>
+                </div>
+
+                <div id="main-quests" class="system-panel">
+                    <h2 class="text-2xl font-semibold">Metas a Largo Plazo</h2>
+                    <div id="main-quests-list" class="space-y-3">
+                        </div>
+                </div>
+
+                <div id="system-log" class="system-panel">
+                    <h2 class="text-2xl font-semibold">Registro del Sistema</h2>
+                    <div id="log-messages" class="max-h-60 overflow-y-auto space-y-2">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Referencias a elementos UI
+        const ui = {
+            playerNameDisplay: document.getElementById('playerNameDisplay'),
+            editNameBtn: document.getElementById('editNameBtn'),
+            nameInputContainer: document.getElementById('nameInputContainer'),
+            playerNameInput: document.getElementById('playerNameInput'),
+            saveNameBtn: document.getElementById('saveNameBtn'),
+            playerLevel: document.getElementById('playerLevel'),
+            playerClass: document.getElementById('playerClass'),
+            playerTitle: document.getElementById('playerTitle'),
+            playerCurrentHP: document.getElementById('playerCurrentHP'),
+            playerMaxHP: document.getElementById('playerMaxHP'),
+            hpBarFill: document.getElementById('hpBarFill'),
+            playerCurrentMP: document.getElementById('playerCurrentMP'),
+            playerMaxMP: document.getElementById('playerMaxMP'),
+            mpBarFill: document.getElementById('mpBarFill'),
+            playerXP: document.getElementById('playerXP'),
+            playerXPToNextLevel: document.getElementById('playerXPToNextLevel'),
+            xpBarFill: document.getElementById('xpBarFill'),
+            statPoints: document.getElementById('statPoints'),
+            statsList: document.getElementById('stats-list'),
+            dailyQuestsList: document.getElementById('daily-quests-list'),
+            mainQuestsList: document.getElementById('main-quests-list'),
+            logMessages: document.getElementById('log-messages'),
+            endDayButton: document.getElementById('endDayButton'),
+            challengeModePanel: document.getElementById('challenge-mode-panel'),
+            challengeQuestDetails: document.getElementById('challenge-quest-details'),
+        };
+
+        // Estado del jugador - PUEDES EDITAR ESTOS VALORES PARA PERSONALIZAR TU EXPERIENCIA
+        let player = {
+            name: "Tu Nombre Aquí", // Cambia esto por tu nombre
+            level: 1, // Nivel de Progreso
+            xp: 0, // Experiencia de Vida
+            xpToNextLevel: 100,
+            class: "Iniciando el Camino", // Etapa Actual
+            title: "Aprendiz de la Vida", // Reconocimiento
+            stats: { // Atributos Personales
+                fuerzaFisica: 5, // Ej: Capacidad para levantar peso, resistencia en sprints
+                resistenciaFisica: 5, // Ej: Capacidad para ejercicio prolongado, afecta Energía
+                saludGeneral: 5, // Ej: Calidad de sueño, nutrición, bienestar general
+                ahorros: 1, // Ej: Monto ahorrado, % de ingresos ahorrado
+                ingresosPotencial: 1, // Ej: Nuevas fuentes de ingreso, aumento salarial
+                desarrolloHabilidad: 3, // Ej: Progreso en una nueva habilidad, afecta Enfoque
+            },
+            statPoints: 0, // Puntos de Mejora
+            currentHP: 50, // Energía Actual
+            maxHP: 50,     // Energía Máxima (calculada por resistenciaFisica)
+            currentMP: 30, // Enfoque Actual
+            maxMP: 30,     // Enfoque Máximo (calculado por desarrolloHabilidad)
+            dailyQuests: [ // Hábitos Diarios / Objetivos Corto Plazo - EDITA ESTOS OBJETIVOS
+                { id: 'dq1', name: "Ejercicio Físico", description: "Realizar 30 minutos de actividad física.", target: 1, current: 0, xpReward: 30, unit: 'sesión', completed: false, actionAmount: 1 },
+                { id: 'dq2', name: "Alimentación Consciente", description: "Registrar 3 comidas saludables.", target: 3, current: 0, xpReward: 20, unit: 'comidas', completed: false, actionAmount: 1 },
+                { id: 'dq3', name: "Ahorro Diario", description: "Ahorrar una cantidad designada (ej: $50 MXN).", target: 1, current: 0, xpReward: 25, unit: 'meta', completed: false, actionAmount: 1 },
+                { id: 'dq4', name: "Desarrollo de Habilidad", description: "Dedicar 45 minutos a aprender/practicar una habilidad.", target: 1, current: 0, xpReward: 35, unit: 'sesión', completed: false, actionAmount: 1 },
+                { id: 'dq5', name: "Descanso Adecuado", description: "Dormir al menos 7 horas.", target: 1, current: 0, xpReward: 15, unit: 'noche', completed: false, actionAmount: 1 }
+            ],
+            mainQuests: [ // Metas a Largo Plazo - EDITA ESTAS METAS
+                { id: 'mq1', name: "Establecer Fondo de Emergencia", description: "Ahorrar el equivalente a 1 mes de gastos.", xpReward: 300, completed: false, canComplete: true, targetValue: 10000, currentValue: 0, unit: '$' },
+                { id: 'mq2', name: "Correr 5 Kilómetros", description: "Completar una carrera de 5km sin detenerse.", xpReward: 200, completed: false, canComplete: true, targetValue: 5, currentValue: 0, unit: 'km' }
+            ],
+            inChallengeMode: false, // Anteriormente inPenaltyZone
+            challengeQuest: null // Anteriormente penaltyQuest
+        };
+
+        // --- FUNCIONES DE RENDERIZADO ---
+        function renderPlayerInfo() {
+            ui.playerNameDisplay.textContent = player.name;
+            ui.playerLevel.textContent = player.level;
+            ui.playerClass.textContent = player.class;
+            ui.playerTitle.textContent = player.title;
+
+            // Energía (HP) basada en Resistencia Física
+            player.maxHP = player.stats.resistenciaFisica * 10 + 20; // Base + por punto
+            // Enfoque (MP) basada en Desarrollo de Habilidad
+            player.maxMP = player.stats.desarrolloHabilidad * 10 + 10; // Base + por punto
+            
+            if (player.currentHP > player.maxHP) player.currentHP = player.maxHP;
+            if (player.currentMP > player.maxMP) player.currentMP = player.maxMP;
+
+
+            ui.playerCurrentHP.textContent = player.currentHP;
+            ui.playerMaxHP.textContent = player.maxHP;
+            ui.hpBarFill.style.width = `${(player.currentHP / player.maxHP) * 100}%`;
+            ui.hpBarFill.textContent = `${Math.round((player.currentHP / player.maxHP) * 100)}%`;
+
+
+            ui.playerCurrentMP.textContent = player.currentMP;
+            ui.playerMaxMP.textContent = player.maxMP;
+            ui.mpBarFill.style.width = `${(player.currentMP / player.maxMP) * 100}%`;
+            ui.mpBarFill.textContent = `${Math.round((player.currentMP / player.maxMP) * 100)}%`;
+
+            ui.playerXP.textContent = player.xp;
+            ui.playerXPToNextLevel.textContent = player.xpToNextLevel;
+            ui.xpBarFill.style.width = `${(player.xp / player.xpToNextLevel) * 100}%`;
+            ui.xpBarFill.textContent = `${Math.round((player.xp / player.xpToNextLevel) * 100)}%`;
+        }
+
+        function renderStats() {
+            ui.statPoints.textContent = player.statPoints;
+            ui.statsList.innerHTML = ''; 
+            for (const stat in player.stats) {
+                const statElement = document.createElement('div');
+                statElement.classList.add('flex', 'justify-between', 'items-center', 'stat-allocation');
+                // Formatear nombres de stats para visualización
+                let displayName = stat.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                statElement.innerHTML = `
+                    <span>${displayName}: ${player.stats[stat]}</span>
+                    ${player.statPoints > 0 ? `<button class="btn btn-sm btn-primary" onclick="allocateStat('${stat}')"><i class="fas fa-plus"></i></button>` : ''}
+                `;
+                ui.statsList.appendChild(statElement);
+            }
+        }
+
+        function renderDailyQuests() {
+            ui.dailyQuestsList.innerHTML = '';
+            if (player.inChallengeMode && player.challengeQuest) return; 
+
+            player.dailyQuests.forEach(quest => {
+                const questElement = document.createElement('div');
+                questElement.classList.add('quest-item');
+                if (quest.completed) questElement.classList.add('completed');
+                
+                let progressText = `${quest.current} / ${quest.target} ${quest.unit}`;
+                if (quest.completed) progressText = "Completado";
+
+                questElement.innerHTML = `
+                    <h3 class="font-semibold text-lg text-sky-300">${quest.name}</h3>
+                    <p class="text-sm text-gray-400">${quest.description}</p>
+                    <p class="text-sm">Progreso: ${progressText}</p>
+                    <p class="text-sm">Recompensa: ${quest.xpReward} XP Vida</p>
+                    ${!quest.completed ? `<button class="btn btn-sm mt-2" onclick="performDailyAction('${quest.id}', ${quest.actionAmount})">Registrar ${quest.actionAmount} ${quest.unit}</button>` : ''}
+                `;
+                ui.dailyQuestsList.appendChild(questElement);
+            });
+        }
+        
+        function renderMainQuests() {
+            ui.mainQuestsList.innerHTML = '';
+            player.mainQuests.forEach(quest => {
+                if (quest.hidden && !quest.completed) return; 
+
+                const questElement = document.createElement('div');
+                questElement.classList.add('quest-item');
+                if (quest.completed) questElement.classList.add('completed');
+                
+                let progressInfo = '';
+                if (quest.targetValue) {
+                    progressInfo = `<p class="text-sm">Progreso: ${quest.currentValue || 0} / ${quest.targetValue} ${quest.unit || ''}</p>`;
+                }
+
+                questElement.innerHTML = `
+                    <h3 class="font-semibold text-lg ${quest.isChallenge ? 'text-yellow-400' : 'text-sky-300'}">${quest.name}</h3>
+                    <p class="text-sm text-gray-400">${quest.description}</p>
+                    ${progressInfo}
+                    <p class="text-sm">Recompensa: ${quest.xpReward} XP Vida</p>
+                    ${!quest.completed && quest.canComplete && !quest.targetValue ? `<button class="btn btn-sm btn-primary mt-2" onclick="completeMainQuest('${quest.id}')">Marcar como Completada</button>` : ''}
+                    ${!quest.completed && quest.targetValue ? `<button class="btn btn-sm btn-primary mt-2" onclick="updateMainQuestProgress('${quest.id}')">Actualizar Progreso</button>` : ''}
+                    ${!quest.completed && quest.isChallenge && quest.subTasks ? renderChallengeSubTasks(quest) : ''}
+                `;
+                ui.mainQuestsList.appendChild(questElement);
+            });
+        }
+        
+        window.updateMainQuestProgress = function(questId) {
+            const quest = player.mainQuests.find(q => q.id === questId);
+            if (quest && quest.targetValue) {
+                const amount = prompt(`¿Cuánto progreso quieres añadir para "${quest.name}"? (Actual: ${quest.currentValue || 0} ${quest.unit || ''})`);
+                const numAmount = parseFloat(amount);
+                if (!isNaN(numAmount) && numAmount > 0) {
+                    quest.currentValue = (quest.currentValue || 0) + numAmount;
+                    addSystemMessage(`Progreso de "${quest.name}" actualizado a ${quest.currentValue} ${quest.unit || ''}.`, 'info');
+                    if (quest.currentValue >= quest.targetValue) {
+                        quest.currentValue = quest.targetValue;
+                        completeMainQuest(questId, true); // true para indicar que se completó por progreso
+                    }
+                    renderMainQuests();
+                    renderPlayerInfo();
+                } else if (amount !== null) {
+                    addSystemMessage("Cantidad inválida.", "warning");
+                }
+            }
+        }
+
+
+        function renderChallengeSubTasks(challengeQuest) {
+            if (!challengeQuest.subTasks) return '';
+            let html = '<div class="mt-2 space-y-1">';
+            challengeQuest.subTasks.forEach((task, index) => {
+                html += `
+                    <div class="flex items-center">
+                        <input type="checkbox" id="subtask-${challengeQuest.id}-${index}" class="mr-2" onchange="toggleChallengeSubtask('${challengeQuest.id}', ${index})" ${task.completed ? 'checked' : ''}>
+                        <label for="subtask-${challengeQuest.id}-${index}" class="${task.completed ? 'line-through text-gray-500' : ''}">${task.name}</label>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function addSystemMessage(message, type = 'info') {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('system-log-message', type);
+            
+            let iconClass = 'fas fa-info-circle';
+            if (type === 'success') iconClass = 'fas fa-check-circle';
+            if (type === 'warning') iconClass = 'fas fa-exclamation-triangle';
+            if (type === 'error') iconClass = 'fas fa-times-circle';
+
+            messageElement.innerHTML = `<i class="${iconClass} mr-2"></i> ${message}`;
+            ui.logMessages.prepend(messageElement); 
+             if (ui.logMessages.children.length > 20) { 
+                ui.logMessages.removeChild(ui.logMessages.lastChild);
+            }
+        }
+
+        // --- LÓGICA DEL JUEGO ---
+        function gainXp(amount) {
+            if (player.inChallengeMode) {
+                addSystemMessage("No se puede ganar XP en Modo Desafío hasta completarlo.", "warning");
+                return;
+            }
+            player.xp += amount;
+            addSystemMessage(`¡Has ganado ${amount} XP de Vida!`, 'success');
+            levelUpCheck();
+            renderAll();
+        }
+
+        function levelUpCheck() {
+            while (player.xp >= player.xpToNextLevel) {
+                player.level++;
+                player.xp -= player.xpToNextLevel;
+                player.xpToNextLevel = Math.floor(player.xpToNextLevel * 1.2 + 75 * player.level); 
+                player.statPoints += 3; // Puntos de mejora por nivel
+                
+                player.currentHP = player.maxHP; // Restaurar Energía
+                player.currentMP = player.maxMP; // Restaurar Enfoque
+
+                addSystemMessage(`¡Felicidades! ¡Has avanzado al Nivel de Progreso ${player.level}!`, 'success');
+                addSystemMessage(`Has recibido 3 Puntos de Mejora.`, 'info');
+                updateClassAndTitle();
+            }
+        }
+        
+        function updateClassAndTitle() { // Nuevas clases y títulos enfocados en desarrollo personal
+            if (player.level >= 25) {
+                player.class = "Maestro de Hábitos";
+                player.title = "Arquitecto de su Destino";
+            } else if (player.level >= 20) {
+                player.class = "Experto en Crecimiento";
+                player.title = "Forjador de Realidades";
+            } else if (player.level >= 15) {
+                player.class = "Estratega Personal";
+                player.title = "Cultivador de Potencial";
+            } else if (player.level >= 10) {
+                player.class = "Avanzando con Determinación";
+                player.title = "Explorador de Capacidades";
+            } else if (player.level >= 5) {
+                player.class = "Desarrollando Rutinas";
+                player.title = "Descubridor de Fortalezas";
+            }
+        }
+
+        window.allocateStat = function(statName) {
+            if (player.statPoints > 0) {
+                player.stats[statName]++;
+                player.statPoints--;
+                let displayName = statName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                addSystemMessage(`Has mejorado ${displayName} a ${player.stats[statName]}.`, 'info');
+                
+                if (statName === 'resistenciaFisica') {
+                    const oldMaxHP = player.maxHP;
+                    player.maxHP = player.stats.resistenciaFisica * 10 + 20;
+                    player.currentHP += (player.maxHP - oldMaxHP); 
+                    if(player.currentHP > player.maxHP) player.currentHP = player.maxHP;
+                }
+                if (statName === 'desarrolloHabilidad') {
+                     const oldMaxMP = player.maxMP;
+                    player.maxMP = player.stats.desarrolloHabilidad * 10 + 10;
+                    player.currentMP += (player.maxMP - oldMaxMP);
+                    if(player.currentMP > player.maxMP) player.currentMP = player.maxMP;
+                }
+                renderAll();
+            } else {
+                addSystemMessage("No tienes Puntos de Mejora para asignar.", "warning");
+            }
+        }
+
+        window.performDailyAction = function(questId, amount) {
+            const quest = player.dailyQuests.find(q => q.id === questId);
+            if (quest && !quest.completed) {
+                quest.current += amount;
+                addSystemMessage(`Has registrado ${amount} ${quest.unit} de ${quest.name}. Progreso: ${quest.current}/${quest.target}.`, 'info');
+                if (quest.current >= quest.target) {
+                    quest.current = quest.target; 
+                    quest.completed = true;
+                    gainXp(quest.xpReward);
+                    addSystemMessage(`¡Hábito diario "${quest.name}" completado!`, 'success');
+                }
+                renderDailyQuests();
+                renderPlayerInfo(); 
+            }
+        }
+        
+        window.completeMainQuest = function(questId, byProgress = false) {
+            const quest = player.mainQuests.find(q => q.id === questId);
+            if (quest && !quest.completed && (quest.canComplete || byProgress)) {
+                quest.completed = true;
+                gainXp(quest.xpReward);
+                addSystemMessage(`¡Meta a largo plazo "${quest.name}" alcanzada!`, 'success');
+                
+                // Ejemplo de desbloquear nueva meta
+                if (quest.id === 'mq1') { 
+                    player.mainQuests.push({ 
+                        id: 'mq3', 
+                        name: "Invertir Primeros $1000", 
+                        description: "Comenzar a invertir para el futuro.", 
+                        xpReward: 400, 
+                        completed: false, 
+                        canComplete: true, 
+                        targetValue: 1000, 
+                        currentValue: 0, 
+                        unit: '$' 
+                    });
+                }
+                renderAll();
+            }
+        }
+
+        function endDay() {
+            if (player.inChallengeMode) {
+                addSystemMessage("Debes completar el Modo Desafío primero.", "error");
+                return;
+            }
+
+            const allDailiesCompleted = player.dailyQuests.every(q => q.completed);
+            if (allDailiesCompleted) {
+                addSystemMessage("¡Todos los hábitos diarios completados! Excelente trabajo. Los hábitos se reiniciarán.", 'success');
+                gainXp(25); // Bonus por completar todos los hábitos
+            } else {
+                addSystemMessage("Algunos hábitos diarios no fueron completados. ¡Activando Modo Desafío / Recuperación!", 'warning');
+                startChallengeMode();
+            }
+            resetDailyQuests();
+            renderAll();
+        }
+
+        function startChallengeMode() { // Anteriormente startPenaltyQuest
+            player.inChallengeMode = true;
+            ui.challengeModePanel.classList.remove('hidden');
+            ui.dailyQuestsList.innerHTML = '<p class="text-center text-gray-400">Hábitos diarios no disponibles en Modo Desafío.</p>';
+            
+            player.challengeQuest = {
+                id: 'cq1',
+                name: "Plan de Recuperación Semanal",
+                description: "Completa 2 de las siguientes tareas para volver al camino.",
+                xpReward: 75, 
+                completed: false,
+                isChallenge: true,
+                canComplete: false, 
+                subTasks: [
+                    { name: "Planificar comidas saludables para 3 días", completed: false },
+                    { name: "Revisar presupuesto y identificar 1 área de ahorro", completed: false },
+                    { name: "Agendar sesiones de ejercicio para la próxima semana", completed: false },
+                    { name: "Dedicar 30 min a lectura o aprendizaje enfocado", completed: false }
+                ],
+                completedSubTasks: 0
+            };
+            
+            if (!player.mainQuests.find(q => q.id === player.challengeQuest.id)) {
+                 player.mainQuests.unshift(player.challengeQuest); 
+            }
+            updateChallengeQuestDisplay();
+            renderMainQuests(); // Para mostrar la misión de desafío
+        }
+        
+        window.toggleChallengeSubtask = function(questId, subTaskIndex) {
+            const quest = player.challengeQuest;
+            if (quest && quest.id === questId && quest.subTasks && quest.subTasks[subTaskIndex]) {
+                const subTask = quest.subTasks[subTaskIndex];
+                subTask.completed = !subTask.completed;
+                if (subTask.completed) {
+                    quest.completedSubTasks = (quest.completedSubTasks || 0) + 1;
+                    addSystemMessage(`Tarea de recuperación "${subTask.name}" completada.`, 'info');
+                } else {
+                    quest.completedSubTasks--;
+                    addSystemMessage(`Tarea de recuperación "${subTask.name}" marcada como no completada.`, 'info');
+                }
+
+                if (quest.completedSubTasks >= 2) { // Objetivo del desafío
+                    completeChallengeQuest();
+                }
+                renderMainQuests(); // Actualizar la visualización de las subtareas
+            }
+        }
+
+        function updateChallengeQuestDisplay() { // Adaptado para subtareas
+            if (!player.challengeQuest) return;
+            ui.challengeQuestDetails.innerHTML = `
+                <p class="text-yellow-300">${player.challengeQuest.description}</p>
+                <p>Tareas completadas: ${player.challengeQuest.completedSubTasks || 0} / 2 requeridas</p>
+            `;
+        }
+
+        function completeChallengeQuest() {
+            if (!player.challengeQuest) return;
+            
+            player.challengeQuest.completed = true; // Marcar la misión principal de desafío como completada
+            addSystemMessage("¡Modo Desafío superado! Has vuelto al camino.", 'success');
+            gainXp(player.challengeQuest.xpReward); 
+            
+            player.inChallengeMode = false;
+            ui.challengeModePanel.classList.add('hidden');
+            
+            const challengeQuestInMain = player.mainQuests.find(q => q.id === player.challengeQuest.id);
+            if(challengeQuestInMain) challengeQuestInMain.completed = true; // Asegurar que se marque como completada en la lista principal
+
+            player.challengeQuest = null; 
+            resetDailyQuests(); 
+            renderAll();
+        }
+
+
+        function resetDailyQuests() {
+            player.dailyQuests.forEach(quest => {
+                quest.current = 0;
+                quest.completed = false;
+            });
+        }
+        
+        function savePlayerName() {
+            const newName = ui.playerNameInput.value.trim();
+            if (newName) {
+                player.name = newName;
+                addSystemMessage(`Nombre actualizado a: ${player.name}`, 'info');
+                ui.nameInputContainer.classList.add('hidden');
+                ui.playerNameDisplay.classList.remove('hidden');
+                ui.editNameBtn.classList.remove('hidden');
+                renderPlayerInfo();
+            } else {
+                addSystemMessage("El nombre no puede estar vacío.", "warning");
+            }
+        }
+
+        // --- INICIALIZACIÓN Y RENDERIZADO GENERAL ---
+        function renderAll() {
+            renderPlayerInfo();
+            renderStats();
+            renderDailyQuests();
+            renderMainQuests();
+            if (player.inChallengeMode) {
+                updateChallengeQuestDisplay();
+            }
+        }
+
+        function init() {
+            addSystemMessage("Bienvenido a tu Sistema de Progreso Personal. ¡Define tus metas y hábitos!", "info");
+            ui.endDayButton.addEventListener('click', endDay);
+            
+            ui.editNameBtn.addEventListener('click', () => {
+                ui.playerNameDisplay.classList.add('hidden');
+                ui.editNameBtn.classList.add('hidden');
+                ui.nameInputContainer.classList.remove('hidden');
+                ui.playerNameInput.value = player.name;
+                ui.playerNameInput.focus();
+            });
+            ui.saveNameBtn.addEventListener('click', savePlayerName);
+            ui.playerNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    savePlayerName();
+                }
+            });
+
+            // Cargar datos guardados si existen
+            const savedPlayerData = localStorage.getItem('personalProgressPlayerData');
+            if (savedPlayerData) {
+                player = JSON.parse(savedPlayerData);
+                addSystemMessage("Datos de progreso cargados.", "info");
+            }
+
+            // Guardar datos periódicamente o en eventos clave
+            window.addEventListener('beforeunload', () => {
+                localStorage.setItem('personalProgressPlayerData', JSON.stringify(player));
+            });
+
+
+            renderAll();
+        }
+
+        // Iniciar la aplicación
+        init();
+    </script>
+</body>
+</html>
